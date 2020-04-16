@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.68/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.68/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <style>
+    #cesiumContainer {
+      height: 95vh;
+      width: 100%;
+    }
+
+    #toolbar {
+      background: rgba(42, 42, 42, 0.8);
+      padding: 4px;
+      border-radius: 4px;
+    }
+
+    #toolbar input {
+      vertical-align: middle;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="toolbar">
+    <input type="checkbox" value="true" data-bind="checked: clippingPlanesEnabled, valueUpdate: 'input'"> Aktifkan Clip Terrain
+  </div>
+  <div id="cesiumContainer"></div>
+  <script>
+    Cesium.Ion.defaultAccessToken =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiZTA4OWQ3YS00ZTExLTQ2MTgtOWQwNC02YzMwODdmYmNlNjYiLCJpZCI6NDIwMiwic2NvcGVzIjpbImFzciIsImdjIl0sImlhdCI6MTU0MDI0MDQ4Mn0.gYtqnTvyEVGoOaUnKAc-3RKmVjtk1WfGhEhLENaLKr4';
+    var viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: Cesium.createWorldTerrain(),
+      infoBox: false,
+      selectionIndicator: false,
+      skyAtmosphere: false,
+      shouldAnimate: true
+    });
+
+    var globe = viewer.scene.globe;
+    var clippingPlanesEnabled = false;
+    var edgeStylingEnabled = false;
+
+    /*
+    var tileset = viewer.scene.primitives.add(
+      new Cesium.Cesium3DTileset({
+        url: Cesium.IonResource.fromAssetId(91431)
+      })
+    );
+    viewer.zoomTo(tileset)
+    */
+
+    // clipping plane
+    var scene = viewer.scene;
+
+    var clipObjects = ['BIM', 'Point Cloud', 'Instanced', 'Model'];
+
+    var viewModel = {
+      debugBoundingVolumesEnabled: false,
+      edgeStylingEnabled: true,
+      exampleTypes: clipObjects,
+      currentExampleType: clipObjects[0],
+      clippingPlanesEnabled: false,
+      edgeStylingEnabled: false
+    };
+
+    var toolbar = document.getElementById('toolbar');
+    Cesium.knockout.track(viewModel);
+    Cesium.knockout.applyBindings(viewModel, toolbar);
+
+    var targetY = 0.0;
+    var planeEntities = [];
+    var selectedPlane;
+    var clippingPlanes;
+
+
+    // Select plane when mouse down
+    var downHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    downHandler.setInputAction(function (movement) {
+      var pickedObject = scene.pick(movement.position);
+      if (Cesium.defined(pickedObject) &&
+        Cesium.defined(pickedObject.id) &&
+        Cesium.defined(pickedObject.id.plane)) {
+        selectedPlane = pickedObject.id.plane;
+        selectedPlane.material = Cesium.Color.WHITE.withAlpha(0.05);
+        selectedPlane.outlineColor = Cesium.Color.WHITE;
+        scene.screenSpaceCameraController.enableInputs = false;
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
+
+    // Release plane on mouse up
+    var upHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    upHandler.setInputAction(function () {
+      if (Cesium.defined(selectedPlane)) {
+        selectedPlane.material = Cesium.Color.WHITE.withAlpha(0.1);
+        selectedPlane.outlineColor = Cesium.Color.WHITE;
+        selectedPlane = undefined;
+      }
+
+      scene.screenSpaceCameraController.enableInputs = true;
+    }, Cesium.ScreenSpaceEventType.LEFT_UP);
+
+    // Update plane on mouse move
+    var moveHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    moveHandler.setInputAction(function (movement) {
+      if (Cesium.defined(selectedPlane)) {
+        var deltaY = movement.startPosition.y - movement.endPosition.y;
+        targetY += deltaY;
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    function createPlaneUpdateFunction(plane) {
+      return function () {
+        plane.distance = targetY;
+        return plane;
+      };
+    }
+
+
+    //tileset
+    var tileset;
+
+    function loadTileset(url) {
+      clippingPlanes = new Cesium.ClippingPlaneCollection({
+        planes: [
+          new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 0.0, -1.0), 0.0),
+          //new Cesium.ClippingPlane(new Cesium.Cartesian3(-1.0, -1.0, 0.0), 0.0)
+
+        ],
+        //edgeWidth: viewModel.edgeStylingEnabled ? 1.0 : 0.0
+        edgeWidth: 0.0
+      });
+
+      tileset = viewer.scene.primitives.add(new Cesium.Cesium3DTileset({
+        url: url,
+        clippingPlanes: clippingPlanes
+      }));
+
+      tileset.debugShowBoundingVolume = viewModel.debugBoundingVolumesEnabled;
+      return tileset.readyPromise.then(function () {
+        var boundingSphere = tileset.boundingSphere;
+        var radius = boundingSphere.radius;
+
+        viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(0.5, -0.2, radius * 4.0));
+
+        if (!Cesium.Matrix4.equals(tileset.root.transform, Cesium.Matrix4.IDENTITY)) {
+          // The clipping plane is initially positioned at the tileset's root transform.
+          // Apply an additional matrix to center the clipping plane on the bounding sphere center.
+          var transformCenter = Cesium.Matrix4.getTranslation(tileset.root.transform, new Cesium.Cartesian3());
+          var transformCartographic = Cesium.Cartographic.fromCartesian(transformCenter);
+          var boundingSphereCartographic = Cesium.Cartographic.fromCartesian(tileset.boundingSphere.center);
+          var height = boundingSphereCartographic.height - transformCartographic.height;
+          clippingPlanes.modelMatrix = Cesium.Matrix4.fromTranslation(new Cesium.Cartesian3(0.0, 0.0, height));
+        }
+
+        for (var i = 0; i < clippingPlanes.length; ++i) {
+          var plane = clippingPlanes.get(i);
+          var planeEntity = viewer.entities.add({
+            position: boundingSphere.center,
+            plane: {
+              dimensions: new Cesium.Cartesian2(radius * 2.5, radius * 2.5),
+              material: Cesium.Color.WHITE.withAlpha(0.1),
+              plane: new Cesium.CallbackProperty(createPlaneUpdateFunction(plane), false),
+              outline: true,
+              outlineColor: Cesium.Color.WHITE
+            }
+          });
+
+          planeEntities.push(planeEntity);
+        }
+        return tileset;
+      }).otherwise(function (error) {
+        console.log(error);
+      });
+    }
+
+
+
+    //box
+    function loadBox() {
+      var position = Cesium.Cartesian3.fromDegrees(110.372434258461, -7.765252978970868, 140.0);
+
+      var entity = viewer.entities.add({
+        position: position,
+        box: {
+          dimensions: new Cesium.Cartesian3(100.0, 100.0, 180.0),
+          material: Cesium.Color.WHITE.withAlpha(0),
+          outline: false,
+          //outlineColor: Cesium.Color.WHITE
+        }
+      });
+
+      globe.depthTestAgainstTerrain = true;
+      globe.clippingPlanes = new Cesium.ClippingPlaneCollection({
+        modelMatrix: entity.computeModelMatrix(Cesium.Matrix4.fromTranslation(new Cesium.Cartesian3(0.0, 0.0,
+          140))),
+        planes: [
+          new Cesium.ClippingPlane(new Cesium.Cartesian3(1.0, 0.0, 0.0), -80.0),
+          new Cesium.ClippingPlane(new Cesium.Cartesian3(-1.0, 0.0, 0.0), -80.0),
+          new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 1.0, 0.0), -80.0),
+          new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, -1.0, 0.0), -80.0)
+        ],
+        edgeWidth: edgeStylingEnabled ? 1.0 : 0.0,
+        edgeColor: Cesium.Color.WHITE,
+        enabled: clippingPlanesEnabled
+      });
+      globe.backFaceCulling = true;
+      globe.showSkirts = true;
+
+      viewer.trackedEntity = entity;
+    }
+
+    Cesium.knockout.getObservable(viewModel, 'clippingPlanesEnabled').subscribe(function (value) {
+      globe.clippingPlanes.enabled = value;
+      clippingPlanesEnabled = value;
+    });
+
+    Cesium.knockout.getObservable(viewModel, 'edgeStylingEnabled').subscribe(function (value) {
+      edgeStylingEnabled = value;
+      globe.clippingPlanes.edgeWidth = edgeStylingEnabled ? 1.0 : 0.0;
+    });
+
+
+
+    //panggil tileset
+    var bimUrl = Cesium.IonResource.fromAssetId(91431);
+    loadTileset(bimUrl);
+    loadBox();
+  </script>
+</body>
+
+</html>
