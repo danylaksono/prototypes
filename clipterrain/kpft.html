@@ -27,21 +27,13 @@
 
 <body>
   <div id="toolbar">
-    <input type="checkbox" value="true" data-bind="checked: clippingPlanesEnabled, valueUpdate: 'input'"> Aktifkan Clip
-    Terrain
+    <input type="checkbox" value="true" data-bind="checked: clippingPlanesEnabled, valueUpdate: 'input'"> Aktifkan Clip Terrain
   </div>
   <div id="cesiumContainer"></div>
   <script>
     Cesium.Ion.defaultAccessToken =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiZTA4OWQ3YS00ZTExLTQ2MTgtOWQwNC02YzMwODdmYmNlNjYiLCJpZCI6NDIwMiwic2NvcGVzIjpbImFzciIsImdjIl0sImlhdCI6MTU0MDI0MDQ4Mn0.gYtqnTvyEVGoOaUnKAc-3RKmVjtk1WfGhEhLENaLKr4';
-
-
-    var esri = new Cesium.ArcGisMapServerImageryProvider({
-      url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
-    });
-
     var viewer = new Cesium.Viewer('cesiumContainer', {
-      imageryProvider : esri,
       terrainProvider: Cesium.createWorldTerrain(),
       infoBox: false,
       selectionIndicator: false,
@@ -84,9 +76,6 @@
     var planeEntities = [];
     var selectedPlane;
     var clippingPlanes;
-
-
-
 
 
     // Select plane when mouse down
@@ -193,7 +182,7 @@
 
     //box
     function loadBox() {
-      var position = Cesium.Cartesian3.fromDegrees(110.37279635667801, -7.763956061796632, 140.0);
+      var position = Cesium.Cartesian3.fromDegrees(110.372434258461, -7.765252978970868, 140.0);
 
       var entity = viewer.entities.add({
         position: position,
@@ -238,7 +227,7 @@
 
 
     //panggil tileset
-    var bimUrl = Cesium.IonResource.fromAssetId(91537);
+    var bimUrl = Cesium.IonResource.fromAssetId(91431);
     loadTileset(bimUrl);
     loadBox();
   </script>
