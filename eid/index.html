@@ -8,7 +8,7 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     <script>
       window.onload = () => {                       navigator.geolocation.getCurrentPosition((position) => {
-        document.querySelector('a-text').setAttribute('gps-entity-place', `latitude: ${position.coords.latitude}; longitude: ${position.coords.longitude};`)
+        document.querySelector('a-entity').setAttribute('gps-entity-place', `latitude: ${position.coords.latitude}; longitude: ${position.coords.longitude};`)
       });
      }
     </script>
@@ -25,6 +25,7 @@
         look-at="[gps-camera]"
         scale="5 5 5"
       ></a-text>
+	  <a-entity gltf-model="./assets/magnemite/scene.gltf" rotation="0 180 0" scale="0.15 0.15 0.15" look-at="[gps-camera]" animation-mixer/>
       <a-camera gps-camera rotation-reader> </a-camera>
     </a-scene>
   </body>
