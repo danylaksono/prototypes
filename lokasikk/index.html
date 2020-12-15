@@ -52,7 +52,7 @@
         }
         var map = L.map('map', {
             zoomControl:true, maxZoom:28, minZoom:1
-        }).fitBounds([[-7.773129565804835,110.3770258119697],[-7.766799182878506,110.3854667385019]]);
+        }).fitBounds([[-7.774338043529744,110.36877378550022],[-7.761675500578787,110.38678469964591]]);
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
@@ -98,7 +98,8 @@
                         <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(feature.properties['id'].toLocaleString()) : '') + '</td>\
                     </tr>\
                     <tr>\
-                        <td colspan="2">' + (feature.properties['Kelompok'] !== null ? autolinker.link(feature.properties['Kelompok'].toLocaleString()) : '') + '</td>\
+                        <th scope="row">Kelompok</th>\
+                        <td>' + (feature.properties['Kelompok'] !== null ? autolinker.link(feature.properties['Kelompok'].toLocaleString()) : '') + '</td>\
                     </tr>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['luas_ha'] !== null ? autolinker.link(feature.properties['luas_ha'].toLocaleString()) : '') + '</td>\
@@ -142,6 +143,8 @@
         });
         bounds_group.addLayer(layer_pembagian_lokasi_1);
         map.addLayer(layer_pembagian_lokasi_1);
+        var baseMaps = {};
+        L.control.layers(baseMaps,{'<img src="legend/pembagian_lokasi_1.png" /> pembagian_lokasi': layer_pembagian_lokasi_1,"Google Imagery": layer_GoogleImagery_0,},{collapsed:false}).addTo(map);
         setBounds();
         var i = 0;
         layer_pembagian_lokasi_1.eachLayer(function(layer) {
