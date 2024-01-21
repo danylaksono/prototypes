@@ -1,0 +1,40 @@
+---
+title: "Data Exploration"
+# author: "Dany Laksono, Aidan Slingsby, Radu Jianu"
+execute:
+  echo: false
+
+# website:
+#   navbar:
+#     left:
+#       - href: index.qmd
+#         text: Home
+#       - about.qmd
+
+format:
+  html:
+    page-layout: full
+    theme: cosmo
+    toc: false
+---
+
+
+```{ojs}
+//| echo: false
+//| output: false
+import { slippyMap } from "8d39dcfbc8ad8557"
+
+// import { data } from "05b119b94705f4bf"
+
+import { _setupParamFns, glyphMap } from "d531df0d6e0756b5"
+```
+
+load data
+
+```{ojs}
+
+grids = FileAttachment("gridded_london_100m.csv").csv()
+grids
+
+```
+
