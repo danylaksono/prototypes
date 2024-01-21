@@ -21,7 +21,6 @@ import { _setupParamFns, glyphMap } from "d531df0d6e0756b5"
 
 // Data
 import { key_data, minutes, filteredData } from "ed70633b2fdc573f"
-
 import { normalizedData } from "1daf122860a44c9b"
 
 ```
@@ -29,7 +28,6 @@ import { normalizedData } from "1daf122860a44c9b"
 
 # {.sidebar}
 
-</br>
 
 ```{ojs}
 viewof tile = Inputs.select(maptypes, {label: "Basemap"})
@@ -45,35 +43,92 @@ viewof getMinutes = Inputs.checkbox(minutes, {
 })
 
 
-viewof glyphMode = Inputs.radio(["Rose Chart", "Line Chart", "Heatmaps"], {
+viewof glyphMode = Inputs.select(["Rose Chart", "Line Chart", "Heatmaps"], {
   label: "Glyph Mode",
   value: "Line Chart"
 })
 
+// {
+//   const form = Inputs.range([0, 1], {label: "Employment"});
+//   form.number.remove();
+//   form.range.style.margin = 0;
+//   return form;
+// }
+
+html`Weights:`
+
+viewof form_variables = Inputs.form(inputs, {
+  template: (
+    inputs
+  ) => htl.html`<div style="display: flex; flex-direction: column;">
+  ${Object.values(inputs)}
+</div>`
+})
+
+
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+
+// viewof form_variables = Inputs.form(inputs, {
+//   template: (
+//     inputs
+//   ) => htl.html`<div style="display: flex; flex-direction: column; gap: 1em">
+//   ${Object.values(inputs)} </br>
+// </div>`
+// })
+
+inputs = {
+  var inputs = {};
+  for (var i = 0; i < getKeys.length; i++) {
+    var obj = getMinutes[i];
+    inputs[getKeys[i]] = Inputs.range([-1, 1], {
+      // range can be negative
+      label: getKeys[i],
+      step: 0.1,
+      value: obj
+    });
+    inputs[getKeys[i]].number.remove();
+    inputs[getKeys[i]].range.style.margin = 0;
+  }
+
+  return inputs;
+}
+```
+
+```{ojs}
+
+html`Overview:`
 
 {
   // await visibility();
-  const [w, h] = [150, 150];
+  const [w, h] = [200, 200];
   const ctx = DOM.context2d(w, h);
   const canvas = ctx.canvas;
   ctx.fillStyle = "lightgrey";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // drawLineChart(ctx, reshapedData);
-  const x = canvas.width / 2 - 10;
-  const y = canvas.height / 2 - 80;
-  drawLineChart(ctx, x, y, 300, overlaiddata);
+  const x = canvas.width / 2;
+  const y = canvas.height / 2 - 10;
+  drawLineChart(ctx, x, y, 200, overlaiddata);
 
   return canvas;
 }
 ```
 
 
-# Examples { scrolling="true"}
 
+# Case: London
+
+<!-- ::: {.panel-tabset} -->
 
 ## Glyph Dashboard
+
 ```{ojs}
+
 accessibilityGlyph = {
   await visibility();
   const accessibilityGlyph = glyphMap({
@@ -443,7 +498,6 @@ function drawLegend(grid, cellSize, ctx, global, panel) {
 }
 ```
 
-
 ```{ojs}
 //| echo: false
 //| output: false
@@ -507,6 +561,14 @@ function aggregatesCell(data) {
 
 
 ```
+
+
+
+<!-- ::: -->
+
+# Case: Cambridge
+
+This page is for Cambridge
 
 
 
