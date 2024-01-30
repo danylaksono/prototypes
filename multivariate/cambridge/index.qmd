@@ -439,6 +439,7 @@ choropleth = {
     title: "Decarbonisation Score",
     width: 550,
     height: 600,
+    tile: "CartoPositron",
     fullscreen: false,
     choropleth: {
       numClass: 6,
