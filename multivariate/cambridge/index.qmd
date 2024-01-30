@@ -16,12 +16,44 @@ theme:
 //| echo: false
 //| output: false
 // Gridded-glyphmap
-import { slippyMap } from "8d39dcfbc8ad8557"
+// import { slippyMap } from "8d39dcfbc8ad8557"
 import { _setupParamFns, glyphMap } from "d531df0d6e0756b5"
 
-// Data
-import { key_data, minutes, filteredData } from "ed70633b2fdc573f"
-import { normalizedData } from "1daf122860a44c9b"
+// // Data
+// import { key_data, minutes, filteredData } from "ed70633b2fdc573f"
+// import { normalizedData } from "1daf122860a44c9b"
+
+import {
+        // choropleth, 
+        // decarbonisationGlyph, 
+        scores,
+        grid_scores, 
+        // lsoa_scores,
+        lsoaData,
+        calculateScoresGeoJSONWithRank,
+
+        getColourForGrid,
+
+
+        aggregateValues,
+        selected_parameters,
+        initialWeights,
+
+        appendRecordsAggrFn,
+        postAggrFn,
+
+        // drawLegend,
+        // drawBarChart,
+        // drawNightingaleRoseChart,
+
+        // colourMap,
+        colours,
+        // aggregateValues,
+        } from "a884d6781195d883"
+
+import {quickmap} from "@danylaksono/quickmap"
+
+discr = require("statsbreaks")
 
 ```
 
@@ -35,29 +67,7 @@ import { normalizedData } from "1daf122860a44c9b"
 //| output: false
 //| echo: false
 
-import {
-        // choropleth, 
-        // decarbonisationGlyph, 
-        grid_scores, 
-        lsoa_scores,
 
-        aggregateValues,
-        selected_parameters,
-        initialWeights,
-
-        appendRecordsAggrFn,
-        postAggrFn,
-
-        drawLegend,
-        drawBarChart,
-        drawNightingaleRoseChart,
-
-        colourMap,
-        colours,
-        // aggregateValues,
-        } from "a884d6781195d883"
-
-import {quickmap} from "@danylaksono/quickmap"
 
 mutable overlaiddata = null
 
@@ -126,7 +136,7 @@ decarbonisationGlyph = {
     data: grid_scores,
     getLocationFn: (row) => [row.long, row.lat],
     cellSize: 30,
-    mapType: "CartoPositron",
+    mapType: "CartoPositronNoLabel",
     discretisationShape: "grid",
 
     width: window.innerWidth/2 - 220,
@@ -191,7 +201,6 @@ decarbonisationGlyph = {
 //| echo: false
 //| output: false
 
-
 function interactiveDrawFn(mode) {
   return function drawFn(cell, x, y, cellSize, ctx, global, panel) {
     if (!cell) return;
@@ -230,6 +239,171 @@ function interactiveDrawFn(mode) {
   };
 }
 
+
+// Rose Chart
+
+function drawNightingaleRoseChart(
+  ctx,
+  x,
+  y,
+  cellSize,
+  data, // Aggregated data
+  colours,
+  padding = 2
+) {
+  let radius = (cellSize - 2 * padding) / 2;
+
+  // Calculate center of the chart
+  let centerX = x; //+ padding; //+ radius;
+  let centerY = y; // + padding; //+ radius;
+
+  // Calculate angle of each segment
+  let segmentAngle = (2 * Math.PI) / Object.keys(data).length;
+
+  // Iterate over each data type (parameter)
+  Object.keys(data).forEach((type, i) => {
+    // Make the lower color 'whiter'
+    const colorScale = d3
+      .scaleLinear()
+      .domain([0, 100])
+      .range(["white", colours[i]]);
+
+    const hslColour = d3.hsl(colours[i]);
+
+    // Initialize inner radius
+    let innerRadius = 0;
+
+    // Access the single value for the current parameter
+    const value = data[type]; // Directly access value from aggregated data
+
+    // Calculate outer radius of the segment
+    let outerRadius = (value / 100) * radius;
+
+    // Adjust saturation based on value (whiter=less value)
+    const adjustedColor = colorScale(value); // not used
+
+    // Use D3 color object for opacity based on weights
+    const d3Color = d3.color(colours[i]);
+    d3Color.opacity = weights[selected_parameters[i]];
+
+    const modifiedRGBA = d3Color.toString();
+
+    // Set fill style with adjusted color and opacity
+    ctx.fillStyle = modifiedRGBA;
+
+    // Begin path
+    ctx.beginPath();
+
+    // Draw the segment
+    ctx.arc(
+      centerX,
+      centerY,
+      outerRadius,
+      i * segmentAngle,
+      (i + 1) * segmentAngle
+    );
+    ctx.lineTo(centerX, centerY);
+    ctx.closePath();
+
+    ctx.fill();
+
+    // White stroke between segment
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 0.4;
+    ctx.stroke();
+
+    innerRadius = outerRadius;
+  });
+}
+
+
+// Bar chart
+function drawBarChart(
+  ctx,
+  x,
+  y,
+  cellSize,
+  data, // Aggregated data
+  colours,
+  padding
+) {
+  // console.log(data);
+  // // Calculate maximum absolute weight for positioning
+  const maxAbsoluteWeight = Math.max(...Object.values(weights).map(Math.abs));
+
+  // Calculate total width of bars based on weights
+  const totalBarWidth = Object.values(weights).reduce(
+    (sum, weight) => sum + Math.abs(weight),
+    0
+  );
+
+  const availableWidth = cellSize - 2 * maxAbsoluteWeight;
+
+  // Draw center line
+  ctx.beginPath();
+  ctx.moveTo(x - cellSize / 2 + padding, y);
+  ctx.lineTo(x + cellSize / 2 - padding, y);
+  ctx.lineWidth = 0.4;
+  ctx.stroke();
+
+  // // Calculate starting position for the first bar
+  let currentX = x - availableWidth / 2;
+
+  // Iterate over each parameter and draw its bar
+  selected_parameters.forEach((parameter, i) => {
+    const value = data[parameter]; // Access value from aggregated data
+    const color = colours[i];
+    const weight = weights[parameter];
+
+    // Calculate bar width based on weight and total bar width
+    let barWidth = (Math.abs(weight) * availableWidth) / totalBarWidth;
+
+    const minBarWidth = 1;
+    barWidth = Math.max(barWidth, minBarWidth);
+
+    // Calculate bar height based on value and available vertical space
+    const barHeight = (value / 100) * (cellSize / 2); // Adjust for half-cell height
+
+    // Calculate bar position based on weight and center line
+    let barY = y;
+
+    // Draw the bar
+    ctx.fillStyle = color;
+    ctx.fillRect(currentX, barY, barWidth, -1 * barHeight * weight);
+
+    // Update starting position for the next bar
+    currentX += barWidth;
+  });
+}
+
+
+// Legend
+function drawLegend(grid, cellSize, ctx, global, panel) {
+  ctx.font = "10px sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+
+  const maxTextWidth = d3.max(
+    selected_parameters.map((item) => ctx.measureText(item).width)
+  );
+
+  const x = panel.getWidth() - maxTextWidth - 20;
+  let y = panel.getHeight() - selected_parameters.length * 15;
+
+  ctx.fillStyle = "#fff8";
+  ctx.fillRect(x, y, maxTextWidth + 15, selected_parameters.length * 15);
+
+  for (let i = 0; i < selected_parameters.length; i++) {
+    ctx.fillStyle = colours[i];
+    ctx.fillRect(x, y, 10, 10);
+    ctx.fillStyle = "#333";
+    ctx.fillText(selected_parameters[i], x + 15, y + 5);
+    y += 15;
+  }
+}
+
+
+// Glyph selector
 {
   glyphModeDecarb;
   decarbonisationGlyph.setGlyph({
@@ -240,9 +414,21 @@ function interactiveDrawFn(mode) {
   });
 }
 
+```
+
+```{ojs}
+//| output: false
+//| echo: false
+lsoa_scores = calculateScoresGeoJSONWithRank(
+  lsoaData,
+  selected_parameters,
+  Object.values(weights)
+)
 
 
 ```
+
+
 
 ## Choropleth
 
@@ -306,6 +492,31 @@ maptypes = [
   "WikimediaMaps"
 ]
 
+
+function colourMap(value) {
+  try {
+    const color = getColourForGrid(
+      value,
+      discr.breaks(scores, {
+        method: "quantile", // choropleth method
+        nb: 6, // number of class
+        minmax: true,
+        precision: 2
+      }),
+      "BuPu"
+    );
+
+    // Apply alpha transparency using a D3 color object
+    const d3Color = d3.color(color);
+    d3Color.opacity = gridTransparency;
+
+    return d3Color.toString(); // Return the color string with opacity
+  } catch (error) {
+    console.log("error occured during style mapping");
+    // console.error(error);
+    return "gray";
+  }
+}
 ```
 
 
