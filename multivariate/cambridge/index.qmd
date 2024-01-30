@@ -148,22 +148,22 @@ decarbonisationGlyph = {
       aggrFn: appendRecordsAggrFn,
       postAggrFn: postAggrFn,
       // drawFn: drawFn,
-      // postDrawFn: drawLegend
-    //   tooltipTextFn: (cell) => {
-    //     if (cell.averages) {
-    //       mutable overlaiddata = [cell.averages, cell.score];
-    //       // const text = cell.averages["pv_annualgen"];
-    //       const textBuilder = [];
-    //       for (const variable of selected_parameters) {
-    //         const average = cell.averages[variable] ?? "-";
-    //         const percentage = average ? Math.round(average) + "%" : "-";
-    //         textBuilder.push(`${variable}=${percentage}; <br>`);
-    //       }
-    //       const text = textBuilder.join("").slice(0, -4); // Remove trailing "; "
+      postDrawFn: drawLegend,
+      tooltipTextFn: (cell) => {
+        if (cell.averages) {
+          mutable overlaiddata = [cell.averages, cell.score];
+          // const text = cell.averages["pv_annualgen"];
+          const textBuilder = [];
+          for (const variable of selected_parameters) {
+            const average = cell.averages[variable] ?? "-";
+            const percentage = average ? Math.round(average) + "%" : "-";
+            textBuilder.push(`${variable}=${percentage}; <br>`);
+          }
+          const text = textBuilder.join("").slice(0, -4); // Remove trailing "; "
 
-    //       return text;
-    //     }
-    //   }
+          return text;
+        }
+      }
     }
   });
 
