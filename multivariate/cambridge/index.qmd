@@ -1,0 +1,311 @@
+---
+title: "Multivariate Gridded-Glyphmaps: Cambridge"
+# author: "Dany Laksono, Aidan Slingsby, Radu Jianu"
+execute:
+  echo: false
+format: 
+  dashboard
+    # nav-buttons: [github]
+theme: 
+  - cosmo
+  - assets/quarto.scss
+---
+
+
+```{ojs}
+//| echo: false
+//| output: false
+// Gridded-glyphmap
+import { slippyMap } from "8d39dcfbc8ad8557"
+import { _setupParamFns, glyphMap } from "d531df0d6e0756b5"
+
+// Data
+import { key_data, minutes, filteredData } from "ed70633b2fdc573f"
+import { normalizedData } from "1daf122860a44c9b"
+
+```
+
+
+
+<!-- ::: -->
+
+# Case: Cambridge
+
+```{ojs}
+//| output: false
+//| echo: false
+
+import {
+        // choropleth, 
+        // decarbonisationGlyph, 
+        grid_scores, 
+        lsoa_scores,
+
+        aggregateValues,
+        selected_parameters,
+        initialWeights,
+
+        appendRecordsAggrFn,
+        postAggrFn,
+
+        drawLegend,
+        drawBarChart,
+        drawNightingaleRoseChart,
+
+        colourMap,
+        colours,
+        // aggregateValues,
+        } from "a884d6781195d883"
+
+import {quickmap} from "@danylaksono/quickmap"
+
+mutable overlaiddata = null
+
+```
+
+## {.sidebar}
+
+```{ojs}
+
+// viewof tile = Inputs.select(maptypes, {label: "Basemap"})
+
+viewof gridTransparency = {
+    const nb = Inputs.range([0, 1], {
+        value: 0.5,
+        label: "Grid transparency"
+    })
+    nb.number.remove();
+    return nb;
+}
+
+viewof glyphModeDecarb = Inputs.radio(["Bar Chart", "Rose Chart"], {
+  label: "Glyph Mode",
+  value: "Rose Chart"
+})
+
+
+viewof weights = Inputs.form(inputs, {
+  template: (
+    inputs
+  ) => htl.html`<div style="display: flex; flex-direction: column;">
+  ${Object.values(inputs)}
+</div>`
+})
+
+```
+
+```{ojs}
+//| output: false
+//| echo: false
+
+inputs = {
+  var inputs = {};
+  for (var i = 0; i < selected_parameters.length; i++) {
+    var obj = initialWeights[i];
+    inputs[selected_parameters[i]] = Inputs.range([-1, 1], {
+      label: selected_parameters[i],
+      step: 0.1,
+      value: obj
+    });
+    inputs[selected_parameters[i]].number.remove();
+    inputs[selected_parameters[i]].range.style.margin = 0;
+  }
+
+  return inputs;
+}
+```
+
+
+## Glyph Dashboard
+
+```{ojs}
+
+decarbonisationGlyph = {
+  await visibility();
+  const decarbonisationGlyph = glyphMap({
+    data: grid_scores,
+    getLocationFn: (row) => [row.long, row.lat],
+    cellSize: 30,
+    mapType: "CartoPositron",
+    discretisationShape: "grid",
+
+    width: window.innerWidth/2 - 220,
+    height: window.innerHeight - 120,
+    // greyscale: true,
+    tileWidth: 150,
+
+    glyph: {
+      aggrFn: appendRecordsAggrFn,
+      postAggrFn: postAggrFn,
+      // drawFn: drawFn,
+      // postDrawFn: drawLegend
+    //   tooltipTextFn: (cell) => {
+    //     if (cell.averages) {
+    //       mutable overlaiddata = [cell.averages, cell.score];
+    //       // const text = cell.averages["pv_annualgen"];
+    //       const textBuilder = [];
+    //       for (const variable of selected_parameters) {
+    //         const average = cell.averages[variable] ?? "-";
+    //         const percentage = average ? Math.round(average) + "%" : "-";
+    //         textBuilder.push(`${variable}=${percentage}; <br>`);
+    //       }
+    //       const text = textBuilder.join("").slice(0, -4); // Remove trailing "; "
+
+    //       return text;
+    //     }
+    //   }
+    }
+  });
+
+  return decarbonisationGlyph;
+}
+
+
+
+// function appendRecordsAggrFn(cell, row, weight, global, panel) {
+//   if (!cell.records) cell.records = []; //if the cell doesn't currently have a records property, make one
+//   cell.records.push(row); //append the record
+// }
+
+// function postAggrFn(cells, cellSize, global, panel) {
+//   for (const cell of cells) {
+//     // console.log(cell.record);
+//     cell.averages = {};
+//     if (cell.records) {
+//       // Averages the values for each cell
+//       // console.log("summarise", reshapeData(aggregatesCell(cell.records)));
+//       cell.averages = aggregateValues(cell.records, selected_parameters);
+
+//       // cell score
+//       const cellScores = cell.records.map((d) => d.score);
+//       cell.score = d3.max(cellScores);
+//       // console.log(cell.averages);
+//     }
+//   }
+// }
+
+```
+
+
+```{ojs}
+//| echo: false
+//| output: false
+
+
+function interactiveDrawFn(mode) {
+  return function drawFn(cell, x, y, cellSize, ctx, global, panel) {
+    if (!cell) return;
+    const padding = 2;
+    // ctx.globalAlpha = 0.5;
+
+    var grid_long = cellSize - padding * 2;
+    var grid_wide = cellSize - padding * 2;
+
+    //draw cell background
+
+    const boundary = cell.getBoundary(padding);
+    // console.log("score: ", cell.score);
+    ctx.fillStyle = colourMap(cell.score);
+
+    ctx.beginPath();
+    ctx.moveTo(boundary[0][0], boundary[0][1]);
+    for (let i = 1; i < boundary.length; i++)
+      ctx.lineTo(boundary[i][0], boundary[i][1]);
+    ctx.closePath();
+    ctx.fill();
+
+    if (mode == "Bar Chart") {
+      drawBarChart(ctx, x, y, cellSize, cell.averages, colours, padding);
+    } else if (mode == "Rose Chart") {
+      drawNightingaleRoseChart(
+        ctx,
+        x,
+        y,
+        cellSize,
+        cell.averages,
+        colours,
+        padding
+      );
+    }
+  };
+}
+
+{
+  glyphModeDecarb;
+  decarbonisationGlyph.setGlyph({
+    drawFn: interactiveDrawFn(glyphModeDecarb)
+  });
+  decarbonisationGlyph.setGlyph({
+    drawFn: interactiveDrawFn(glyphModeDecarb)
+  });
+}
+
+
+
+```
+
+## Choropleth
+
+```{ojs}
+choropleth = {
+  return quickmap(lsoa_scores, {
+    attrib: "score",
+    title: "Decarbonisation Score",
+    width: 550,
+    height: 600,
+    fullscreen: false,
+    choropleth: {
+      numClass: 6,
+      method: "quantile",
+      colorScheme: "BuPu"
+    }
+  });
+}
+```
+
+
+
+
+# Case: London
+
+<!-- ::: {.panel-tabset} -->
+
+
+
+
+# About
+
+This page is to list the dependencies
+
+
+```{ojs}
+//| echo: false
+//| output: false
+
+maptypes = [
+//   "StadiaStamenToner",
+//   "StadiaStamenTonerLite",
+//   "StadiaStamenWatercolor",
+//   "StadiaStamenOutdoor",
+//   "StadiaStamenTerrain",
+//   "StadiaAlidade",
+//   "StadiaAlidadeDark",
+//   "StadiaOSMBright",
+  "CartoPositron",
+  "CartoPositronNoLabel",
+  "CartoDark",
+  "CartoDBVoyager",
+  "CartoDBVoyagerNoLabel",
+  "StamenTerrain",
+  "StamenToner",
+  "StamenTonerHybrid",
+  "StamenTonerLite",
+  "StamenWatercolor",
+  "OSMMapnik",
+  "OSMStandard",
+  "WikimediaMaps"
+]
+
+```
+
+

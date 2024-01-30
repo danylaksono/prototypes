@@ -26,7 +26,49 @@ import { normalizedData } from "1daf122860a44c9b"
 ```
 
 
-# {.sidebar}
+
+<!-- ::: -->
+
+# Case: Cambridge
+
+```{ojs}
+//| output: false
+//| echo: false
+
+import {choropleth, decarbonisationGlyph} from "a884d6781195d883"
+
+```
+
+## {.sidebar}
+
+```{ojs}
+
+// viewof tile = Inputs.select(maptypes, {label: "Basemap"})
+
+viewof gridTransparency = Inputs.range([0, 1], {
+  value: 0.5,
+  label: "Grid transparency"
+})
+viewof glyphModeDecarb = Inputs.radio(["Bar Chart", "Rose Chart"], {
+  label: "Glyph Mode",
+  value: "Rose Chart"
+})
+
+
+```
+
+## Glyph Dashboard
+
+```{ojs}
+decarbonisationGlyph
+```
+
+
+# Case: London
+
+<!-- ::: {.panel-tabset} -->
+
+## {.sidebar}
 
 
 ```{ojs}
@@ -57,11 +99,11 @@ viewof glyphMode = Inputs.select(["Rose Chart", "Line Chart", "Heatmaps"], {
 
 html`Weights:`
 
-viewof form_variables = Inputs.form(inputs, {
+viewof form_variables = Inputs.form(inputsLondon, {
   template: (
-    inputs
+    inputsLondon
   ) => htl.html`<div style="display: flex; flex-direction: column;">
-  ${Object.values(inputs)}
+  ${Object.values(inputsLondon)}
 </div>`
 })
 
@@ -80,7 +122,7 @@ viewof form_variables = Inputs.form(inputs, {
 // </div>`
 // })
 
-inputs = {
+inputsLondon = {
   var inputs = {};
   for (var i = 0; i < getKeys.length; i++) {
     var obj = getMinutes[i];
@@ -103,7 +145,7 @@ inputs = {
 html`Overview:`
 
 {
-  // await visibility();
+  await visibility();
   const [w, h] = [200, 200];
   const ctx = DOM.context2d(w, h);
   const canvas = ctx.canvas;
@@ -120,10 +162,6 @@ html`Overview:`
 ```
 
 
-
-# Case: London
-
-<!-- ::: {.panel-tabset} -->
 
 ## Glyph Dashboard
 
@@ -562,13 +600,6 @@ function aggregatesCell(data) {
 
 ```
 
-
-
-<!-- ::: -->
-
-# Case: Cambridge
-
-This page is for Cambridge
 
 
 
