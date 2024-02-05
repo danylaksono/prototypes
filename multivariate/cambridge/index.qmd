@@ -453,13 +453,6 @@ choropleth = {
 
 
 
-# Case: London
-
-<!-- ::: {.panel-tabset} -->
-
-
-
-
 # About
 
 This page is to list the dependencies
