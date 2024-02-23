@@ -2,5 +2,20 @@
   "dependencies": {
     "body-parser": "^1.20.2",
     "express": "^4.18.2"
-  }
+  },
+  "name": "obs-api",
+  "version": "1.0.0",
+  "description": "mockup api for observable notebook",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/danylaksono/apps/obs-api"
+  },
+  "author": "danylaksono",
+  "license": "ISC"
 }
