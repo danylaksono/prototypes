@@ -20,8 +20,8 @@ const style = {
     },
     protomaps: {
       type: "raster",
-      // url: "pmtiles://http://localhost:5173/jogja_1925.pmtiles",
-      url: `pmtiles://${location.protocol}//${location.host}${location.pathname}jogja_1925.pmtiles`,
+      url: "pmtiles://https://pub-ee5ad887928649d582242a69272f342c.r2.dev/jogja_1925.pmtiles",
+      // url: `pmtiles://${location.protocol}//${location.host}${location.pathname}jogja_1925.pmtiles`,
     },
     // protomaps: {
     //   type: "vector",
