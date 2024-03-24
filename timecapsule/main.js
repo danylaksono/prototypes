@@ -32,7 +32,7 @@ const style = {
     // },
   },
   layers:
-    // layers("protomaps", "light"),
+    // layers("protomaps", "light")
     [
       {
         id: "osm",
