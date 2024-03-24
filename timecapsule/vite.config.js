@@ -1,3 +1,3 @@
 export default {
-  base: "/apps/timecapsule/",
+  base: "/apps/timecapsule/dist",
 };

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Map</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .map-overlay {
+        font: bold 12px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        position: absolute;
+        width: 25%;
+        top: 0;
+        left: 0;
+        padding: 10px;
+      }
+
+      .map-overlay .map-overlay-inner {
+        background-color: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      .map-overlay label {
+        display: block;
+        margin: 0 0 10px;
+      }
+
+      .map-overlay input {
+        background-color: transparent;
+        display: inline-block;
+        width: 100%;
+        position: relative;
+        margin: 0;
+        cursor: ew-resize;
+      }
+    </style>
+    <script type="module" crossorigin src="/apps/timecapsule/assets/index-62-ibB4U.js"></script>
+    <link rel="stylesheet" crossorigin href="/apps/timecapsule/assets/index-CeWKV1SP.css">
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="map-overlay top">
+      <div class="map-overlay-inner">
+        <label>Atur transparansi: <span id="slider-value">65%</span></label>
+        <input id="slider" type="range" min="0" max="100" step="0" value="65" />
+      </div>
+    </div>
+  </body>
+</html>
