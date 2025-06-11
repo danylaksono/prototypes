@@ -251,7 +251,7 @@
           <div id="map" class="graphic-container visible"></div>
           <div id="map-image" class="graphic-container map-image-container">
             <img
-              src="./20250609-dokumen-empat-pulau-aceh-2.jpg"
+              src="https://raw.githubusercontent.com/danylaksono/prototypes/refs/heads/main/sengketa-pulau/20250609-dokumen-empat-pulau-aceh-2.jpg"
               alt="Peta Topografi TNI AD 1978"
               onerror="this.onerror=null;this.src='https://placehold.co/600x400/EEE/333?text=Peta+Tidak+Ditemukan';"
             />
@@ -381,7 +381,7 @@
             </div>
           </article>
 
-          <!-- NEW AI Section -->
+          <!-- UPDATED AI Section -->
           <section id="ai-section">
             <h2 class="title is-4 has-text-grey-darker">
               <i class="fas fa-microchip mr-2"></i> Tanya Pakar Geospasial (AI)
@@ -389,7 +389,27 @@
             <p class="subtitle is-6">
               Punya pertanyaan lebih lanjut tentang kasus ini? Tanyakan di sini.
             </p>
+
             <div class="field">
+              <label class="label is-small">Kunci API Gemini (Opsional)</label>
+              <div class="control">
+                <input
+                  id="api-key-input"
+                  class="input is-small"
+                  type="password"
+                  placeholder="Masukkan kunci API Gemini Anda di sini"
+                />
+              </div>
+              <p class="help is-size-7">
+                Dapatkan kunci API gratis dari
+                <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                  >Google AI Studio</a
+                >. Kunci hanya digunakan di browser Anda.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="label">Pertanyaan Anda</label>
               <div class="control">
                 <textarea
                   id="ai-prompt"
@@ -422,7 +442,14 @@
         <p>
           Sebuah narasi visual interaktif yang diadaptasi dari berbagai sumber
           berita mengenai sengketa batas wilayah. Dibuat untuk tujuan edukasi
-          dan ditingkatkan dengan Gemini AI.
+          dan ditingkatkan dengan Gemini AI. Daftar Rujukan:
+          <a
+            href="https://www.acehnews.id/news/ini-jawaban-mengapa-4-pulau-di-aceh-beralih-ke-provinsi-sumatera-utara/index.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Aceh News</a
+          >, dan komentar Pak Andi Arsana tentang artikel berita di atas.
+          @danylaksono dengan bantuan LLM Gemini AI.
         </p>
       </div>
     </footer>
@@ -444,6 +471,7 @@
       const mapImageEl = document.getElementById("map-image");
       const timelineEl = document.getElementById("timeline-vis");
       const steps = d3.selectAll(".step");
+      const apiKeyInput = document.getElementById("api-key-input");
       const aiPromptEl = document.getElementById("ai-prompt");
       const aiSubmitBtn = document.getElementById("ai-submit");
       const aiResponseEl = document.getElementById("ai-response");
@@ -579,33 +607,26 @@
       function drawTimeline() {
         if (!timelineSvg) return;
 
-        // Clear previous drawing
         timelineSvg.selectAll("*").remove();
-
         const margin = { top: 40, right: 80, bottom: 40, left: 80 };
-        // Use clientWidth/clientHeight which reflect the current size
         const width = timelineEl.clientWidth - margin.left - margin.right;
         const height = timelineEl.clientHeight - margin.top - margin.bottom;
 
-        // Do not draw if element has no size
         if (width <= 0 || height <= 0) return;
 
         const g = timelineSvg
           .append("g")
           .attr("transform", `translate(${margin.left},${margin.top})`);
-
         const y = d3
           .scalePoint()
           .domain(timelineData.map((d) => d.year))
           .range([0, height]);
-
         g.append("line")
           .attr("x1", width / 2)
           .attr("x2", width / 2)
           .attr("y1", 0)
           .attr("y2", height)
           .attr("class", "timeline-line");
-
         const nodes = g
           .selectAll("g.node")
           .data(timelineData)
@@ -617,11 +638,9 @@
             const targetStep = document.querySelector(
               `.step[data-step="${d.step}"]`
             );
-            if (targetStep) {
+            if (targetStep)
               targetStep.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
           });
-
         nodes.append("circle").attr("r", 8).attr("class", "timeline-circle");
         nodes
           .append("text")
@@ -636,15 +655,12 @@
           );
       }
 
-      // --- One-time D3 Timeline Initialization ---
       function initTimeline() {
-        // Create the SVG container once
         timelineSvg = d3
           .select("#timeline-vis")
           .append("svg")
           .attr("width", "100%")
           .attr("height", "100%");
-        // Draw it for the first time
         drawTimeline();
       }
 
@@ -652,6 +668,17 @@
       async function askGemini(question) {
         aiResponseEl.innerHTML = '<div class="loader"></div>';
         aiSubmitBtn.classList.add("is-loading");
+
+        const userApiKey = apiKeyInput.value.trim();
+        // Use user-provided key if available, otherwise fallback to environment-injected key
+        const apiKey = userApiKey || "";
+
+        if (!apiKey && !userApiKey) {
+          aiResponseEl.innerText =
+            "Kunci API tidak ditemukan. Harap masukkan kunci API Anda di kolom di atas, atau pastikan lingkungan ini menyediakan kunci API secara otomatis.";
+          aiSubmitBtn.classList.remove("is-loading");
+          return;
+        }
 
         const context = `Anda adalah seorang ahli geospasial dan hukum administrasi negara. Jawab pertanyaan pengguna dalam konteks sengketa 4 pulau (Mangkir Gadang, Mangkir Ketek, Lipan, Panjang) antara Aceh dan Sumatera Utara. Poin-poin kunci dari sengketa ini adalah: 1. Aceh melakukan 'effective occupation' (pembangunan dan pengelolaan). 2. Peta Topografi TNI AD 1978 menunjukkan pulau-pulau itu di wilayah Aceh, tapi peta ini bukan dasar hukum final. 3. Pada 2008, tim verifikasi nasional tidak menemukan pulau itu dalam daftar Aceh. 4. Pada 2009, Aceh mengirim surat ke Kemendagri dengan KOORDINAT YANG SALAH, yang menjadi kesalahan fatal. 5. Sumatera Utara memanfaatkan ini dan mendaftarkan pulau-pulau tersebut. 6. Keputusan Kemendagri secara konsisten menetapkan pulau-pulau itu masuk wilayah Sumut karena data administratif yang sah (meskipun diawali kesalahan data dari Aceh). Kesimpulan utamanya adalah data legal-administratif yang terdaftar resmi mengalahkan klaim historis atau penguasaan fisik ('effective occupation').`;
 
@@ -664,7 +691,6 @@
           },
         ];
         const payload = { contents: chatHistory };
-        const apiKey = ""; // API key is handled by the environment
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
         try {
@@ -675,18 +701,14 @@
           });
 
           if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
+            throw new Error(
+              `API Error: ${response.status} ${response.statusText}`
+            );
           }
 
           const result = await response.json();
 
-          if (
-            result.candidates &&
-            result.candidates.length > 0 &&
-            result.candidates[0].content &&
-            result.candidates[0].content.parts &&
-            result.candidates[0].content.parts.length > 0
-          ) {
+          if (result.candidates && result.candidates.length > 0) {
             const text = result.candidates[0].content.parts[0].text;
             aiResponseEl.innerText = text;
           } else {
@@ -696,8 +718,7 @@
           }
         } catch (error) {
           console.error("Error calling Gemini API:", error);
-          aiResponseEl.innerText =
-            "Terjadi kesalahan saat menghubungi AI. Silakan coba lagi nanti.";
+          aiResponseEl.innerText = `Terjadi kesalahan saat menghubungi AI: ${error.message}. Pastikan kunci API Anda valid dan memiliki izin yang benar.`;
         } finally {
           aiSubmitBtn.classList.remove("is-loading");
         }
@@ -859,19 +880,12 @@
         document.getElementById(graphicId).classList.add("visible");
         activeGraphic = graphicId;
         if (graphicId === "map") {
-          // Delay invalidateSize slightly to ensure container is fully visible
           setTimeout(function () {
             map.invalidateSize();
           }, 200);
         }
       }
 
-      /**
-       * Debounce function to limit the rate at which a function gets called.
-       * @param {Function} func The function to debounce.
-       * @param {number} wait The delay in milliseconds.
-       * @returns {Function} The debounced function.
-       */
       function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -884,7 +898,6 @@
         };
       }
 
-      // --- Main Initialization Function ---
       function init() {
         initMap();
         initTimeline();
@@ -898,7 +911,6 @@
             steps.classed("is-active", (d, i) => i === response.index);
           });
 
-        // AI Section Event Listener
         aiSubmitBtn.addEventListener("click", () => {
           const question = aiPromptEl.value;
           if (question.trim()) {
@@ -909,7 +921,6 @@
           }
         });
 
-        // Use the debounced resize handler for scrollama and the timeline
         window.addEventListener(
           "resize",
           debounce(() => {
@@ -919,7 +930,6 @@
         );
       }
 
-      // --- Start the application ---
       document.addEventListener("DOMContentLoaded", init);
     </script>
   </body>
