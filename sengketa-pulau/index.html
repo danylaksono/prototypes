@@ -148,6 +148,7 @@
         padding: 10px;
         border-radius: 5px;
         box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+        font-size: 12px;
       }
       .legend i {
         width: 18px;
@@ -220,6 +221,41 @@
         background-color: #0a192f;
         color: #8892b0;
       }
+
+      /* --- Responsive Styles for Mobile --- */
+      @media (max-width: 768px) {
+        .scrolly-container {
+          flex-direction: column;
+        }
+        #graphics,
+        #narrative {
+          width: 100%;
+          max-width: 100%;
+        }
+        #graphics {
+          height: 45vh; /* Shorter sticky panel for mobile */
+          z-index: 5;
+        }
+        .step {
+          margin-bottom: 40vh; /* Adjust scroll trigger margin for vertical layout */
+          z-index: 10;
+          position: relative; /* Ensure steps are above the flow */
+          background-color: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(5px);
+        }
+        .hero .title {
+          font-size: 2rem;
+        }
+        .hero .subtitle {
+          font-size: 1.1rem;
+        }
+        .step p {
+          font-size: 1rem;
+        }
+        .step h2 {
+          font-size: 1.5rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -269,7 +305,6 @@
         <!-- Narrative Text Panel -->
         <div id="narrative">
           <article class="steps">
-            <!-- Steps 1-8 are identical to the previous version -->
             <div class="step" data-step="1">
               <h2>Pendahuluan: Empat Pulau di Persimpangan</h2>
               <p>
@@ -381,7 +416,6 @@
             </div>
           </article>
 
-          <!-- UPDATED AI Section -->
           <section id="ai-section">
             <h2 class="title is-4 has-text-grey-darker">
               <i class="fas fa-microchip mr-2"></i> Tanya Pakar Geospasial (AI)
@@ -436,7 +470,6 @@
       </div>
     </section>
 
-    <!-- Footer -->
     <footer class="footer">
       <div class="content has-text-centered">
         <p>
@@ -454,7 +487,6 @@
       </div>
     </footer>
 
-    <!-- External Libraries: JavaScript -->
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -463,7 +495,6 @@
     <script src="https://unpkg.com/scrollama"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
 
-    <!-- Internal JavaScript -->
     <script>
       // --- DOM Elements ---
       const graphicsEl = document.getElementById("graphics");
@@ -542,9 +573,8 @@
         sumutLine,
         legend,
         timelineSvg;
-      let activeGraphic = "map"; // To track which graphic is visible
+      let activeGraphic = "map";
 
-      // --- Map Initialization ---
       function initMap() {
         map = L.map("map", {
           center: [2.25, 97.8],
@@ -603,12 +633,11 @@
         document.querySelector(".legend").innerHTML = content;
       }
 
-      // --- D3 Timeline Drawing (Responsive) ---
       function drawTimeline() {
         if (!timelineSvg) return;
 
         timelineSvg.selectAll("*").remove();
-        const margin = { top: 40, right: 80, bottom: 40, left: 80 };
+        const margin = { top: 40, right: 30, bottom: 40, left: 30 };
         const width = timelineEl.clientWidth - margin.left - margin.right;
         const height = timelineEl.clientHeight - margin.top - margin.bottom;
 
@@ -644,7 +673,7 @@
         nodes.append("circle").attr("r", 8).attr("class", "timeline-circle");
         nodes
           .append("text")
-          .attr("x", (d) => (timelineData.indexOf(d) % 2 === 0 ? -20 : 20))
+          .attr("x", (d) => (timelineData.indexOf(d) % 2 === 0 ? -15 : 15))
           .attr("dy", "0.35em")
           .attr("text-anchor", (d) =>
             timelineData.indexOf(d) % 2 === 0 ? "end" : "start"
@@ -664,16 +693,14 @@
         drawTimeline();
       }
 
-      // --- Gemini AI API Call ---
       async function askGemini(question) {
         aiResponseEl.innerHTML = '<div class="loader"></div>';
         aiSubmitBtn.classList.add("is-loading");
 
         const userApiKey = apiKeyInput.value.trim();
-        // Use user-provided key if available, otherwise fallback to environment-injected key
         const apiKey = userApiKey || "";
 
-        if (!apiKey && !userApiKey) {
+        if (!apiKey) {
           aiResponseEl.innerText =
             "Kunci API tidak ditemukan. Harap masukkan kunci API Anda di kolom di atas, atau pastikan lingkungan ini menyediakan kunci API secara otomatis.";
           aiSubmitBtn.classList.remove("is-loading");
@@ -724,7 +751,6 @@
         }
       }
 
-      // --- Scrollytelling Step Handlers ---
       const stepHandlers = {
         1: () => {
           showGraphic("map");
@@ -810,18 +836,20 @@
             sumutLine.setStyle({ opacity: 0 });
           }
           for (const key in islands) {
-            islandMarkers[key].addTo(map).setIcon(
-              L.icon({
-                iconUrl:
-                  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
-                shadowUrl:
-                  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41],
-              })
-            );
+            islandMarkers[key]
+              .addTo(map)
+              .setIcon(
+                L.icon({
+                  iconUrl:
+                    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+                  shadowUrl:
+                    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                  iconSize: [25, 41],
+                  iconAnchor: [12, 41],
+                  popupAnchor: [1, -34],
+                  shadowSize: [41, 41],
+                })
+              );
             wrongIslandMarkers[key].addTo(map);
           }
           updateLegend([
