@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Kisah 4 Pulau: Pentingnya Data Geospasial dalam Penegasan Batas Wilayah
+    </title>
+
+    <!-- External Libraries: CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Internal Styles -->
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f4f7f9;
+      }
+      .hero-body {
+        background-color: #0a192f;
+        color: #ccd6f6;
+      }
+      .hero .title {
+        color: #64ffda;
+        font-size: 2.5rem;
+        font-weight: 600;
+      }
+      .hero .subtitle {
+        color: #8892b0;
+        font-size: 1.25rem;
+      }
+      #scrolly {
+        position: relative;
+        display: block;
+      }
+      .scrolly-container {
+        display: flex;
+        width: 100%;
+      }
+      #narrative {
+        width: 50%;
+        max-width: 65ch; /* Optimal reading width */
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      #graphics {
+        width: 50%;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #e9ecef;
+        transition: background-color 0.5s;
+      }
+      #map {
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+      .step {
+        margin-bottom: 90vh;
+        padding: 1.5rem;
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border-left: 5px solid #00d1b2;
+        transition: opacity 0.3s;
+      }
+      .step:last-child {
+        margin-bottom: 20vh; /* Reduced margin for the last step */
+      }
+      .step.is-active {
+        opacity: 1;
+      }
+      .step p {
+        line-height: 1.7;
+        font-size: 1.1rem;
+        color: #363636;
+      }
+      .step h2 {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        color: #1a2a45;
+      }
+      .graphic-container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.5s, visibility 0.5s;
+        z-index: 2;
+      }
+      .graphic-container.visible {
+        opacity: 1;
+        visibility: visible;
+      }
+      .map-image-container {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      }
+      .map-image-container img {
+        max-width: 90%;
+        max-height: 90vh;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .map-image-container p {
+        text-align: center;
+        font-style: italic;
+        margin-top: 10px;
+        color: #333;
+      }
+      .timeline-container {
+        width: 90%;
+        height: 90%;
+      }
+      .legend {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+      }
+      .legend i {
+        width: 18px;
+        height: 18px;
+        float: left;
+        margin-right: 8px;
+        opacity: 0.7;
+      }
+
+      /* D3 Timeline styles */
+      .timeline-line {
+        fill: none;
+        stroke: #00d1b2;
+        stroke-width: 3;
+      }
+      .timeline-circle {
+        fill: #00d1b2;
+        stroke: #fff;
+        stroke-width: 2;
+        transition: r 0.3s, fill 0.3s;
+      }
+      .timeline-node:hover .timeline-circle {
+        r: 12;
+        fill: #ff3860;
+      }
+      .timeline-node {
+        cursor: pointer;
+      }
+      .timeline-text {
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
+        fill: #363636;
+      }
+      /* AI Section Styles */
+      #ai-section {
+        padding: 2rem;
+        background-color: #ffffff;
+        border-radius: 8px;
+        margin-top: 2rem;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      }
+      #ai-response {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background-color: #f5f5f5;
+        border-radius: 5px;
+        min-height: 50px;
+        white-space: pre-wrap; /* To respect newlines from AI */
+        line-height: 1.6;
+      }
+      .loader {
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 40px;
+        height: 40px;
+        -webkit-animation: spin 2s linear infinite; /* Safari */
+        animation: spin 2s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .footer {
+        background-color: #0a192f;
+        color: #8892b0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Hero Section -->
+    <section class="hero is-fullheight">
+      <div class="hero-body">
+        <div class="container has-text-centered">
+          <p class="title">Krisis Identitas 4 Pulau</p>
+          <p class="subtitle">
+            Sebuah Analisis Geospasial dan Administratif tentang Sengketa Batas
+            Wilayah Antara Aceh dan Sumatera Utara
+          </p>
+          <p class="is-size-5" style="color: #a8b2d1">
+            Scroll ke bawah untuk memulai penelusuran.
+          </p>
+          <i
+            class="fa-solid fa-chevron-down fa-beat-fade mt-5"
+            style="color: #64ffda; font-size: 2rem"
+          ></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scrollytelling Section -->
+    <section id="scrolly">
+      <div class="scrolly-container">
+        <!-- Sticky Graphics Panel -->
+        <div id="graphics">
+          <div id="map" class="graphic-container visible"></div>
+          <div id="map-image" class="graphic-container map-image-container">
+            <img
+              src="./20250609-dokumen-empat-pulau-aceh-2.jpg"
+              alt="Peta Topografi TNI AD 1978"
+              onerror="this.onerror=null;this.src='https://placehold.co/600x400/EEE/333?text=Peta+Tidak+Ditemukan';"
+            />
+            <p>
+              Peta Topografi TNI AD Tahun 1978. Garis batas indikatif
+              menunjukkan keempat pulau berada di wilayah Aceh.
+            </p>
+          </div>
+          <div
+            id="timeline-vis"
+            class="graphic-container timeline-container"
+          ></div>
+        </div>
+
+        <!-- Narrative Text Panel -->
+        <div id="narrative">
+          <article class="steps">
+            <!-- Steps 1-8 are identical to the previous version -->
+            <div class="step" data-step="1">
+              <h2>Pendahuluan: Empat Pulau di Persimpangan</h2>
+              <p>
+                Di antara Provinsi Aceh dan Sumatera Utara, terhampar empat
+                pulau kecil:
+                <strong
+                  >Pulau Mangkir Gadang (Besar), Pulau Mangkir Ketek (Kecil),
+                  Pulau Lipan, dan Pulau Panjang</strong
+                >. Selama bertahun-tahun, pulau-pulau ini menjadi subjek
+                sengketa batas wilayah yang kompleks, menyoroti peran krusial
+                data geospasial yang akurat dan kepastian hukum dalam
+                administrasi pemerintahan.
+              </p>
+            </div>
+            <div class="step" data-step="2">
+              <h2>Konteks Historis: Penguasaan Efektif oleh Aceh</h2>
+              <p>
+                Secara historis, Pemerintah Aceh dan Kabupaten Aceh Singkil
+                secara aktif mengelola keempat pulau. Prinsip
+                <em>effective occupation</em> (penguasaan efektif) terlihat
+                jelas melalui pembangunan berbagai fasilitas publik menggunakan
+                APBD, seperti dermaga, mushalla, dan rumah singgah antara tahun
+                2007-2015. Bahkan sejak 1965, telah ada layanan sertifikasi
+                lahan, yang mengindikasikan adanya administrasi oleh Aceh.
+              </p>
+            </div>
+            <div class="step" data-step="3">
+              <h2>Peta Topografi 1978: Sebuah Referensi Awal</h2>
+              <p>
+                Peta Topografi yang diterbitkan oleh Direktorat Topografi TNI AD
+                pada tahun 1978 menjadi salah satu argumen awal Aceh. Peta ini
+                secara visual menggambarkan garis batas indikatif yang
+                menempatkan keempat pulau dalam cakupan wilayah Aceh. Namun,
+                penting untuk dicatat bahwa peta topografi semacam ini
+                <strong
+                  >bukanlah dokumen penetapan batas wilayah yang
+                  definitif</strong
+                >
+                secara hukum.
+              </p>
+            </div>
+            <div class="step" data-step="4">
+              <h2>Titik Balik 2008: Verifikasi Nama Rupabumi</h2>
+              <p>
+                Konflik mulai memanas pada tahun 2008 ketika Tim Nasional
+                Pembakuan Nama Rupabumi melakukan verifikasi pulau. Tim ini
+                melakukan pendataan di Sumatera Utara (Mei 2008) dan Aceh
+                (November 2008). Anehnya, saat verifikasi di Sumatera Utara,
+                keempat pulau tersebut terdata. Namun, saat verifikasi di Aceh,
+                keempat pulau tersebut justru tidak ditemukan dalam daftar.
+              </p>
+            </div>
+            <div class="step" data-step="5">
+              <h2>Kesalahan Fatal: Kekeliruan Koordinat</h2>
+              <p>
+                Inilah inti dari permasalahan. Dalam suratnya kepada Menteri
+                Dalam Negeri pada tahun 2009, Pemerintah Aceh melaporkan
+                koordinat keempat pulau yang ternyata
+                <strong>tidak akurat</strong>. Kesalahan data geospasial ini
+                berakibat fatal: secara administratif, posisi pulau yang
+                dilaporkan Aceh berbeda dengan hasil verifikasi Tim Nasional,
+                sehingga seolah-olah tidak ada tumpang tindih klaim dengan
+                Sumatera Utara.
+              </p>
+            </div>
+            <div class="step" data-step="6">
+              <h2>Langkah Administratif Sumatera Utara</h2>
+              <p>
+                Memanfaatkan kekosongan data dari Aceh, Gubernur Sumatera Utara
+                pada Oktober 2009 secara resmi mengonfirmasi kepada Mendagri
+                bahwa keempat pulau tersebut termasuk dalam 213 pulau di wilayah
+                administrasinya, berdasarkan hasil verifikasi timnas. Langkah
+                ini menguatkan klaim Sumut secara legal-administratif.
+              </p>
+            </div>
+            <div class="step" data-step="7">
+              <h2>Garis Waktu Sengketa: Upaya Hukum dan Mediasi</h2>
+              <p>
+                Sejak 2017 hingga 2022, Pemerintah Aceh berulang kali
+                melayangkan surat keberatan dan permohonan fasilitasi kepada
+                Kemendagri. Berbagai rapat dan verifikasi lapangan dilakukan.
+                Namun, karena dasar administrasi awal yang terlanjur tercatat
+                atas nama Sumatera Utara akibat kesalahan koordinat, upaya Aceh
+                tidak membuahkan hasil. Keputusan Menteri Dalam Negeri
+                (Kepmendagri) secara konsisten menempatkan pulau-pulau tersebut
+                di wilayah Tapanuli Tengah, Sumatera Utara.
+              </p>
+            </div>
+            <div class="step" data-step="8">
+              <h2>Kesimpulan: Supremasi Data Legal-Administratif</h2>
+              <p>
+                Kasus ini menjadi pelajaran berharga. Meskipun Aceh dapat
+                membuktikan <em>effective occupation</em> melalui pembangunan
+                dan pengelolaan, hal tersebut tidak cukup untuk melawan data
+                administratif yang telah tercatat secara resmi di tingkat
+                nasional. Dalam penegasan batas wilayah,
+                <strong
+                  >ketepatan dan keabsahan data geospasial yang didaftarkan
+                  secara hukum memiliki kekuatan yang lebih tinggi</strong
+                >
+                daripada klaim historis atau penguasaan fisik semata.
+              </p>
+              <p>
+                Ibarat memiliki rumah yang telah lama ditempati, namun salah
+                memberikan alamat saat sensus, maka secara hukum rumah itu bisa
+                tercatat atas nama tetangga. Begitu besar makna sebuah
+                koordinat.
+              </p>
+            </div>
+          </article>
+
+          <!-- NEW AI Section -->
+          <section id="ai-section">
+            <h2 class="title is-4 has-text-grey-darker">
+              <i class="fas fa-microchip mr-2"></i> Tanya Pakar Geospasial (AI)
+            </h2>
+            <p class="subtitle is-6">
+              Punya pertanyaan lebih lanjut tentang kasus ini? Tanyakan di sini.
+            </p>
+            <div class="field">
+              <div class="control">
+                <textarea
+                  id="ai-prompt"
+                  class="textarea"
+                  placeholder="Contoh: Apa itu prinsip 'effective occupation' dalam hukum internasional?"
+                ></textarea>
+              </div>
+            </div>
+            <div class="field">
+              <div class="control">
+                <button id="ai-submit" class="button is-primary is-fullwidth">
+                  <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                  <span>Kirim Pertanyaan</span>
+                </button>
+              </div>
+            </div>
+            <div id="ai-response">
+              <p class="has-text-grey">
+                Jawaban dari AI akan muncul di sini...
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          Sebuah narasi visual interaktif yang diadaptasi dari berbagai sumber
+          berita mengenai sengketa batas wilayah. Dibuat untuk tujuan edukasi
+          dan ditingkatkan dengan Gemini AI.
+        </p>
+      </div>
+    </footer>
+
+    <!-- External Libraries: JavaScript -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="https://unpkg.com/scrollama"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Internal JavaScript -->
+    <script>
+      // --- DOM Elements ---
+      const graphicsEl = document.getElementById("graphics");
+      const mapEl = document.getElementById("map");
+      const mapImageEl = document.getElementById("map-image");
+      const timelineEl = document.getElementById("timeline-vis");
+      const steps = d3.selectAll(".step");
+      const aiPromptEl = document.getElementById("ai-prompt");
+      const aiSubmitBtn = document.getElementById("ai-submit");
+      const aiResponseEl = document.getElementById("ai-response");
+
+      // --- Data Definitions ---
+      const islands = {
+        mangkirGadang: {
+          lat: 2.2417,
+          lng: 97.4256,
+          name: "Pulau Mangkir Gadang",
+        },
+        mangkirKetek: { lat: 2.2431, lng: 97.435, name: "Pulau Mangkir Ketek" },
+        lipan: { lat: 2.2556, lng: 97.4225, name: "Pulau Lipan" },
+        panjang: { lat: 2.2725, lng: 97.4117, name: "Pulau Panjang" },
+      };
+      const wrongIslands = {
+        mangkirGadang: {
+          lat: 2.35,
+          lng: 97.5,
+          name: "Lokasi Salah: Mangkir Gadang",
+        },
+        mangkirKetek: {
+          lat: 2.36,
+          lng: 97.51,
+          name: "Lokasi Salah: Mangkir Ketek",
+        },
+        lipan: { lat: 2.37, lng: 97.48, name: "Lokasi Salah: Lipan" },
+        panjang: { lat: 2.38, lng: 97.47, name: "Lokasi Salah: Panjang" },
+      };
+
+      const timelineData = [
+        {
+          year: 1965,
+          event: "Sertifikasi lahan oleh Inspeksi Agraria.",
+          step: 2,
+        },
+        { year: 1978, event: "Peta Topografi TNI AD terbit.", step: 3 },
+        { year: 2007, event: "Pembangunan oleh Pemda Aceh dimulai.", step: 2 },
+        { year: 2008, event: "Timnas Rupabumi melakukan verifikasi.", step: 4 },
+        {
+          year: 2009,
+          event: "Aceh kirim koordinat salah, Sumut klaim pulau.",
+          step: 5,
+        },
+        {
+          year: 2017,
+          event: "Rapat Kemendagri I, pulau masuk Sumut.",
+          step: 7,
+        },
+        {
+          year: 2020,
+          event: "Rapat fasilitasi II kuatkan keputusan.",
+          step: 7,
+        },
+        {
+          year: 2022,
+          event: "Kepmendagri tegaskan status pulau di Sumut.",
+          step: 7,
+        },
+      ];
+
+      // --- Global Variables ---
+      let map,
+        scroller,
+        islandMarkers = {},
+        wrongIslandMarkers = {},
+        acehLine,
+        sumutLine,
+        legend,
+        timelineSvg;
+      let activeGraphic = "map"; // To track which graphic is visible
+
+      // --- Map Initialization ---
+      function initMap() {
+        map = L.map("map", {
+          center: [2.25, 97.8],
+          zoom: 9,
+          scrollWheelZoom: false,
+          dragging: true,
+          attributionControl: false,
+        });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+        const defaultIcon = L.icon({
+          iconUrl:
+            "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+          shadowUrl:
+            "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41],
+        });
+        for (const key in islands) {
+          islandMarkers[key] = L.marker([islands[key].lat, islands[key].lng], {
+            icon: defaultIcon,
+          }).bindPopup(islands[key].name);
+          wrongIslandMarkers[key] = L.marker(
+            [wrongIslands[key].lat, wrongIslands[key].lng],
+            {
+              icon: L.icon({
+                iconUrl:
+                  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png",
+                shadowUrl:
+                  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
+              }),
+            }
+          ).bindPopup(wrongIslands[key].name);
+        }
+        legend = L.control({ position: "bottomright" });
+        legend.onAdd = function (map) {
+          return L.DomUtil.create("div", "info legend");
+        };
+        legend.addTo(map);
+        updateLegend();
+      }
+
+      function updateLegend(items = []) {
+        let content = "<h4>Legenda</h4>";
+        items.forEach((item) => {
+          content += `<i style="background:${item.color}"></i> ${item.label}<br>`;
+        });
+        document.querySelector(".legend").innerHTML = content;
+      }
+
+      // --- D3 Timeline Drawing (Responsive) ---
+      function drawTimeline() {
+        if (!timelineSvg) return;
+
+        // Clear previous drawing
+        timelineSvg.selectAll("*").remove();
+
+        const margin = { top: 40, right: 80, bottom: 40, left: 80 };
+        // Use clientWidth/clientHeight which reflect the current size
+        const width = timelineEl.clientWidth - margin.left - margin.right;
+        const height = timelineEl.clientHeight - margin.top - margin.bottom;
+
+        // Do not draw if element has no size
+        if (width <= 0 || height <= 0) return;
+
+        const g = timelineSvg
+          .append("g")
+          .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const y = d3
+          .scalePoint()
+          .domain(timelineData.map((d) => d.year))
+          .range([0, height]);
+
+        g.append("line")
+          .attr("x1", width / 2)
+          .attr("x2", width / 2)
+          .attr("y1", 0)
+          .attr("y2", height)
+          .attr("class", "timeline-line");
+
+        const nodes = g
+          .selectAll("g.node")
+          .data(timelineData)
+          .enter()
+          .append("g")
+          .attr("class", "timeline-node")
+          .attr("transform", (d) => `translate(${width / 2},${y(d.year)})`)
+          .on("click", (event, d) => {
+            const targetStep = document.querySelector(
+              `.step[data-step="${d.step}"]`
+            );
+            if (targetStep) {
+              targetStep.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          });
+
+        nodes.append("circle").attr("r", 8).attr("class", "timeline-circle");
+        nodes
+          .append("text")
+          .attr("x", (d) => (timelineData.indexOf(d) % 2 === 0 ? -20 : 20))
+          .attr("dy", "0.35em")
+          .attr("text-anchor", (d) =>
+            timelineData.indexOf(d) % 2 === 0 ? "end" : "start"
+          )
+          .attr("class", "timeline-text")
+          .html(
+            (d) => `<tspan font-weight="bold">${d.year}:</tspan> ${d.event}`
+          );
+      }
+
+      // --- One-time D3 Timeline Initialization ---
+      function initTimeline() {
+        // Create the SVG container once
+        timelineSvg = d3
+          .select("#timeline-vis")
+          .append("svg")
+          .attr("width", "100%")
+          .attr("height", "100%");
+        // Draw it for the first time
+        drawTimeline();
+      }
+
+      // --- Gemini AI API Call ---
+      async function askGemini(question) {
+        aiResponseEl.innerHTML = '<div class="loader"></div>';
+        aiSubmitBtn.classList.add("is-loading");
+
+        const context = `Anda adalah seorang ahli geospasial dan hukum administrasi negara. Jawab pertanyaan pengguna dalam konteks sengketa 4 pulau (Mangkir Gadang, Mangkir Ketek, Lipan, Panjang) antara Aceh dan Sumatera Utara. Poin-poin kunci dari sengketa ini adalah: 1. Aceh melakukan 'effective occupation' (pembangunan dan pengelolaan). 2. Peta Topografi TNI AD 1978 menunjukkan pulau-pulau itu di wilayah Aceh, tapi peta ini bukan dasar hukum final. 3. Pada 2008, tim verifikasi nasional tidak menemukan pulau itu dalam daftar Aceh. 4. Pada 2009, Aceh mengirim surat ke Kemendagri dengan KOORDINAT YANG SALAH, yang menjadi kesalahan fatal. 5. Sumatera Utara memanfaatkan ini dan mendaftarkan pulau-pulau tersebut. 6. Keputusan Kemendagri secara konsisten menetapkan pulau-pulau itu masuk wilayah Sumut karena data administratif yang sah (meskipun diawali kesalahan data dari Aceh). Kesimpulan utamanya adalah data legal-administratif yang terdaftar resmi mengalahkan klaim historis atau penguasaan fisik ('effective occupation').`;
+
+        let chatHistory = [
+          {
+            role: "user",
+            parts: [
+              { text: context + "\n\n Pertanyaan Pengguna: " + question },
+            ],
+          },
+        ];
+        const payload = { contents: chatHistory };
+        const apiKey = ""; // API key is handled by the environment
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+
+          if (
+            result.candidates &&
+            result.candidates.length > 0 &&
+            result.candidates[0].content &&
+            result.candidates[0].content.parts &&
+            result.candidates[0].content.parts.length > 0
+          ) {
+            const text = result.candidates[0].content.parts[0].text;
+            aiResponseEl.innerText = text;
+          } else {
+            aiResponseEl.innerText =
+              "Maaf, tidak ada jawaban yang dapat dihasilkan. Struktur respons tidak terduga.";
+            console.error("Unexpected API response structure:", result);
+          }
+        } catch (error) {
+          console.error("Error calling Gemini API:", error);
+          aiResponseEl.innerText =
+            "Terjadi kesalahan saat menghubungi AI. Silakan coba lagi nanti.";
+        } finally {
+          aiSubmitBtn.classList.remove("is-loading");
+        }
+      }
+
+      // --- Scrollytelling Step Handlers ---
+      const stepHandlers = {
+        1: () => {
+          showGraphic("map");
+          map.flyTo([2.25, 97.8], 9);
+          for (const key in islands)
+            islandMarkers[key]
+              .addTo(map)
+              .setIcon(
+                L.icon({
+                  iconUrl:
+                    "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+                  shadowUrl:
+                    "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+                  iconSize: [25, 41],
+                  iconAnchor: [12, 41],
+                  popupAnchor: [1, -34],
+                  shadowSize: [41, 41],
+                })
+              )
+              .closePopup();
+          for (const key in wrongIslands)
+            if (map.hasLayer(wrongIslandMarkers[key]))
+              map.removeLayer(wrongIslandMarkers[key]);
+          updateLegend([{ color: "#2980b9", label: "Pulau Sengketa" }]);
+        },
+        2: () => {
+          showGraphic("map");
+          map.flyTo([2.26, 97.45], 11);
+          for (const key in islands)
+            islandMarkers[key].setIcon(
+              L.icon({
+                iconUrl:
+                  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+                shadowUrl:
+                  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
+              })
+            );
+          updateLegend([{ color: "green", label: "Klaim/Dikelola Aceh" }]);
+        },
+        3: () => showGraphic("map-image"),
+        4: () => {
+          showGraphic("map");
+          map.flyTo([2.5, 98.2], 8.5);
+          updateLegend([
+            { color: "green", label: "Wilayah Verifikasi Aceh" },
+            { color: "red", label: "Wilayah Verifikasi Sumut" },
+          ]);
+          if (!acehLine) {
+            acehLine = L.polyline(
+              [
+                [2.0, 97.2],
+                [2.8, 97.2],
+                [2.8, 97.9],
+                [2.0, 97.9],
+                [2.0, 97.2],
+              ],
+              { color: "green" }
+            ).addTo(map);
+            sumutLine = L.polyline(
+              [
+                [2.0, 98.0],
+                [2.8, 98.0],
+                [2.8, 98.7],
+                [2.0, 98.7],
+                [2.0, 98.0],
+              ],
+              { color: "red" }
+            ).addTo(map);
+          } else {
+            acehLine.setStyle({ opacity: 1 });
+            sumutLine.setStyle({ opacity: 1 });
+          }
+        },
+        5: () => {
+          showGraphic("map");
+          map.flyTo([2.3, 97.45], 10);
+          if (acehLine) {
+            acehLine.setStyle({ opacity: 0 });
+            sumutLine.setStyle({ opacity: 0 });
+          }
+          for (const key in islands) {
+            islandMarkers[key].addTo(map).setIcon(
+              L.icon({
+                iconUrl:
+                  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+                shadowUrl:
+                  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
+              })
+            );
+            wrongIslandMarkers[key].addTo(map);
+          }
+          updateLegend([
+            { color: "green", label: "Lokasi Aktual Pulau" },
+            { color: "grey", label: "Lokasi Salah (Dilaporkan Aceh)" },
+          ]);
+        },
+        6: () => {
+          showGraphic("map");
+          for (const key in wrongIslands)
+            if (map.hasLayer(wrongIslandMarkers[key]))
+              map.removeLayer(wrongIslandMarkers[key]);
+          for (const key in islands)
+            islandMarkers[key].setIcon(
+              L.icon({
+                iconUrl:
+                  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+                shadowUrl:
+                  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
+              })
+            );
+          updateLegend([
+            { color: "red", label: "Diklaim & Ditetapkan Milik Sumut" },
+          ]);
+        },
+        7: () => showGraphic("timeline-vis"),
+        8: () => {
+          showGraphic("map");
+          map.flyTo([2.25, 97.8], 9);
+          for (const key in islands)
+            islandMarkers[key].setIcon(
+              L.icon({
+                iconUrl:
+                  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+                shadowUrl:
+                  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
+              })
+            );
+          updateLegend([
+            { color: "red", label: "Status Final: Wilayah Sumut" },
+          ]);
+        },
+      };
+
+      function showGraphic(graphicId) {
+        if (activeGraphic === graphicId) return;
+        document.getElementById(activeGraphic).classList.remove("visible");
+        document.getElementById(graphicId).classList.add("visible");
+        activeGraphic = graphicId;
+        if (graphicId === "map") {
+          // Delay invalidateSize slightly to ensure container is fully visible
+          setTimeout(function () {
+            map.invalidateSize();
+          }, 200);
+        }
+      }
+
+      /**
+       * Debounce function to limit the rate at which a function gets called.
+       * @param {Function} func The function to debounce.
+       * @param {number} wait The delay in milliseconds.
+       * @returns {Function} The debounced function.
+       */
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+
+      // --- Main Initialization Function ---
+      function init() {
+        initMap();
+        initTimeline();
+
+        scroller = scrollama();
+        scroller
+          .setup({ step: "#narrative .step", offset: 0.65, debug: false })
+          .onStepEnter((response) => {
+            const stepIndex = response.element.dataset.step;
+            if (stepHandlers[stepIndex]) stepHandlers[stepIndex]();
+            steps.classed("is-active", (d, i) => i === response.index);
+          });
+
+        // AI Section Event Listener
+        aiSubmitBtn.addEventListener("click", () => {
+          const question = aiPromptEl.value;
+          if (question.trim()) {
+            askGemini(question);
+          } else {
+            aiResponseEl.innerText =
+              "Silakan masukkan pertanyaan Anda terlebih dahulu.";
+          }
+        });
+
+        // Use the debounced resize handler for scrollama and the timeline
+        window.addEventListener(
+          "resize",
+          debounce(() => {
+            scroller.resize();
+            drawTimeline();
+          }, 200)
+        );
+      }
+
+      // --- Start the application ---
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>
